@@ -3,7 +3,7 @@ import Foundation
 class TMDBService {
     static let shared = TMDBService()
     
-    private let apiKey = "8639a3faae3096f27a6ddf3f44d2529"
+    private let apiKey = "93d946ef8af5b6f7f9d224b771de538d"
     
     private let baseURL = "https://api.themoviedb.org/3"
     private let imageBaseURL = "https://image.tmdb.org/t/p/w500"
