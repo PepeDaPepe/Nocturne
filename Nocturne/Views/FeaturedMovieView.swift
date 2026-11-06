@@ -1,12 +1,21 @@
 import SwiftUI
+import SwiftData
 
 struct FeaturedMovieView: View {
     let movie: Movie
+    @Environment(\.modelContext) private var modelContext
+    @Query private var savedEntries: [SavedMovieEntry]
+    
+    private var existingEntry: SavedMovieEntry? {
+        savedEntries.first(where: { $0.title == movie.title })
+    }
+    
+    private var isInWatchlist: Bool {
+        existingEntry?.isInWatchlist == true
+    }
     
     var body: some View {
         ZStack(alignment: .bottomLeading) {
-            
-            // 1. SFONDO DINAMICO DA TMDB O ASSETS
             Color.theme.surfaceElevated
                 .overlay(
                     MovieImageView(source: movie.backdropName)
@@ -25,10 +34,7 @@ struct FeaturedMovieView: View {
                 )
                 .clipped()
             
-            // 2. CONTENUTO DELLA CARD
             VStack(alignment: .leading, spacing: 0) {
-                
-                // Barra superiore: Badge "IN EVIDENZA OGGI" + Bottone Share
                 HStack {
                     Text("IN EVIDENZA OGGI")
                         .font(.system(size: 10, weight: .bold))
@@ -44,26 +50,11 @@ struct FeaturedMovieView: View {
                         )
                     
                     Spacer()
-                    
-                    Button(action: {}) {
-                        Image(systemName: "square.and.arrow.up")
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundColor(Color.theme.textPrimary)
-                            .frame(width: 34, height: 34)
-                            .background(Color.theme.background.opacity(0.75))
-                            .clipShape(Circle())
-                            .overlay(
-                                Circle()
-                                    .stroke(Color.theme.borderHairline, lineWidth: 0.5)
-                            )
-                    }
                 }
                 
                 Spacer()
                 
-                // Blocco inferiore: Metadati, Titolo, Trama, Bottoni
                 VStack(alignment: .leading, spacing: LayoutInfo.spaceSM) {
-                    
                     HStack(spacing: LayoutInfo.spaceSM) {
                         HStack(spacing: 4) {
                             Image(systemName: "star.fill")
@@ -79,12 +70,12 @@ struct FeaturedMovieView: View {
                         .background(Color.theme.primaryCyan.opacity(0.15))
                         .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
                         
-                        Text("\(movie.year) • \(movie.runtime / 60)h \(movie.runtime % 60)m")
+                        Text(movie.year)
                             .font(.system(size: 13, weight: .medium))
                             .monospacedDigit()
                             .foregroundColor(Color.theme.textSecondary)
                         
-                        Text("4K Atmos")
+                        Text("TMDB LIVE")
                             .font(.system(size: 11, weight: .semibold))
                             .foregroundColor(Color.theme.primaryCyan)
                             .padding(.horizontal, 6)
@@ -109,10 +100,12 @@ struct FeaturedMovieView: View {
                         .padding(.bottom, 4)
                     
                     HStack(spacing: LayoutInfo.spaceMD) {
-                        Button(action: {}) {
+                        Button(action: {
+                            toggleWatchlist()
+                        }) {
                             HStack(spacing: 8) {
-                                Image(systemName: "bookmark.fill")
-                                Text("Aggiungi a Watchlist")
+                                Image(systemName: isInWatchlist ? "checkmark.circle.fill" : "bookmark.fill")
+                                Text(isInWatchlist ? "Nella tua Watchlist" : "Aggiungi a Watchlist")
                             }
                             .font(.system(size: 15, weight: .semibold))
                             .foregroundColor(Color.theme.background)
@@ -120,19 +113,6 @@ struct FeaturedMovieView: View {
                             .frame(height: 46)
                             .background(Color.theme.primaryCyan)
                             .clipShape(RoundedRectangle(cornerRadius: LayoutInfo.cornerRadiusButton, style: .continuous))
-                        }
-                        
-                        Button(action: {}) {
-                            Image(systemName: "play.fill")
-                                .font(.system(size: 16))
-                                .foregroundColor(Color.theme.textPrimary)
-                                .frame(width: 46, height: 46)
-                                .background(Color.theme.surfaceElevated)
-                                .clipShape(RoundedRectangle(cornerRadius: LayoutInfo.cornerRadiusButton, style: .continuous))
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: LayoutInfo.cornerRadiusButton, style: .continuous)
-                                        .stroke(Color.theme.borderHairline, lineWidth: 0.5)
-                                )
                         }
                     }
                 }
@@ -148,12 +128,14 @@ struct FeaturedMovieView: View {
         )
         .padding(.horizontal, LayoutInfo.gutterMobile)
     }
-}
-
-#Preview {
-    ZStack {
-        Color.theme.background.ignoresSafeArea()
-        FeaturedMovieView(movie: Movie.featuredDune)
+    
+    private func toggleWatchlist() {
+        if let entry = existingEntry {
+            entry.isInWatchlist.toggle()
+        } else {
+            let newEntry = SavedMovieEntry(movie: movie, isInWatchlist: true, isWatched: false)
+            modelContext.insert(newEntry)
+        }
+        try? modelContext.save()
     }
-    .preferredColorScheme(.dark)
 }

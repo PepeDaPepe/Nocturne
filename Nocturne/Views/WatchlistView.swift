@@ -158,36 +158,10 @@ struct WatchlistView: View {
                     .padding(.bottom, 100)
                 }
             }
-            .onAppear {
-                seedInitialDataIfNeeded()
-            }
+            
         }
-    }
-    
-    // Popola il database al primo avvio con i film del tuo mockup
-    private func seedInitialDataIfNeeded() {
-        guard allEntries.isEmpty else { return }
-        
-        let dune = SavedMovieEntry(movie: Movie.featuredDune, isInWatchlist: true, isWatched: false)
-        modelContext.insert(dune)
-        
-        for sample in Movie.sampleTopRated {
-            let item = SavedMovieEntry(
-                movie: sample,
-                isInWatchlist: true,
-                isWatched: true,
-                userRating: 4.5,
-                isLiked: true,
-                reviewText: "“\(sample.synopsis)”",
-                watchTag: "Sala",
-                watchedDate: Date()
-            )
-            modelContext.insert(item)
-        }
-        try? modelContext.save()
     }
 }
-
 struct WatchlistCardRow: View {
     let entry: SavedMovieEntry
     var onToggleWatched: () -> Void

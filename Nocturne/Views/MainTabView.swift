@@ -2,7 +2,7 @@ import SwiftUI
 
 struct MainTabView: View {
     @State private var selectedTab: Int = 0
-    @State private var showQuickLog: Bool = false // Controlla l'apertura del popup "+ Log"
+    @State private var showQuickLog: Bool = false
     
     init() {
         UITabBar.appearance().isHidden = true
@@ -17,11 +17,11 @@ struct MainTabView: View {
                 case 0:
                     HomeView()
                 case 1:
-                    SearchView() // Tab Cerca/Esplora
+                    SearchView()
                 case 3:
-                    WatchlistView() // Tab Watchlist!
+                    WatchlistView()
                 case 4:
-                    ProfileView()   // Tab Profilo!
+                    ProfileView()
                 default:
                     HomeView()
                 }
@@ -32,19 +32,19 @@ struct MainTabView: View {
             NocturneTabBar(
                 selectedTab: $selectedTab,
                 onLogTap: {
-                    showQuickLog = true // Apre la finestra per recensire!
+                    showQuickLog = true
                 }
             )
         }
         .ignoresSafeArea(.keyboard, edges: .bottom)
-        // Finestra modale che sale dal basso quando premi "+ Log"
+        // Apre LogMovieSheet SENZA film preimpostato, così parte dalla ricerca TMDB!
         .sheet(isPresented: $showQuickLog) {
-            LogMovieSheet(movie: Movie.featuredDune)
+            LogMovieSheet(movie: nil)
         }
     }
 }
 
-// MARK: - Componente Barra di Navigazione Custom
+// Componente Barra di Navigazione Custom
 struct NocturneTabBar: View {
     @Binding var selectedTab: Int
     var onLogTap: () -> Void
@@ -134,27 +134,7 @@ struct NocturneTabBar: View {
     }
 }
 
-struct PlaceholderTabView: View {
-    let title: String
-    let icon: String
-    
-    var body: some View {
-        ZStack {
-            Color.theme.background.ignoresSafeArea()
-            VStack(spacing: 12) {
-                Image(systemName: icon)
-                    .font(.system(size: 40))
-                    .foregroundColor(Color.theme.primaryCyan)
-                Text(title)
-                    .font(.system(size: 22, weight: .bold))
-                    .foregroundColor(Color.theme.textPrimary)
-            }
-        }
-    }
-}
-
 #Preview {
     MainTabView()
         .preferredColorScheme(.dark)
 }
-

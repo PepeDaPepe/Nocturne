@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 
 struct FeaturedGenreCardItem: Identifiable {
     let id = UUID()
@@ -340,7 +341,16 @@ struct SearchView: View {
 
 struct SearchResultRowCard: View {
     let movie: Movie
-    @State private var inWatchlist: Bool = false
+    @Environment(\.modelContext) private var modelContext
+    @Query private var savedEntries: [SavedMovieEntry]
+    
+    private var existingEntry: SavedMovieEntry? {
+        savedEntries.first(where: { $0.title == movie.title })
+    }
+    
+    private var inWatchlist: Bool {
+        existingEntry?.isInWatchlist == true
+    }
     
     var body: some View {
         HStack(spacing: LayoutInfo.spaceMD) {
@@ -349,8 +359,8 @@ struct SearchResultRowCard: View {
                     .posterStyle()
                     .frame(width: 78, height: 117)
                 
-                Text("4K")
-                    .font(.system(size: 9, weight: .bold))
+                Text("TMDB")
+                    .font(.system(size: 8, weight: .bold))
                     .foregroundColor(Color.theme.primaryCyan)
                     .padding(.horizontal, 5)
                     .padding(.vertical, 2)
@@ -365,36 +375,27 @@ struct SearchResultRowCard: View {
                     .foregroundColor(Color.theme.textPrimary)
                     .lineLimit(1)
                 
-                Text("\(movie.year) • \(movie.director)")
+                Text(movie.year)
                     .font(.system(size: 13))
                     .monospacedDigit()
                     .foregroundColor(Color.theme.textSecondary)
-                    .lineLimit(1)
                 
                 HStack(spacing: 6) {
-                    HStack(spacing: 2) {
-                        ForEach(0..<5, id: \.self) { _ in
-                            Image(systemName: "star")
-                                .font(.system(size: 11, weight: .semibold))
-                                .foregroundColor(Color.theme.primaryCyan)
-                        }
-                    }
+                    Image(systemName: "star.fill")
+                        .font(.system(size: 11))
+                        .foregroundColor(Color.theme.primaryCyan)
                     
                     Text(String(format: "%.1f", movie.rating))
                         .font(.system(size: 12, weight: .bold))
                         .monospacedDigit()
                         .foregroundColor(Color.theme.textPrimary)
-                    
-                    Text("(TMDB)")
-                        .font(.system(size: 11))
-                        .foregroundColor(Color.theme.textSecondary)
                 }
                 .padding(.top, 2)
                 
                 Spacer(minLength: 4)
                 
                 HStack {
-                    Text("CINEMA")
+                    Text("FILM")
                         .font(.system(size: 9, weight: .bold))
                         .tracking(0.6)
                         .foregroundColor(Color.theme.primaryCyan)
@@ -405,14 +406,22 @@ struct SearchResultRowCard: View {
                     
                     Spacer()
                     
-                    Button(action: { inWatchlist.toggle() }) {
+                    Button(action: {
+                        if let entry = existingEntry {
+                            entry.isInWatchlist.toggle()
+                        } else {
+                            let newEntry = SavedMovieEntry(movie: movie, isInWatchlist: true, isWatched: false)
+                            modelContext.insert(newEntry)
+                        }
+                        try? modelContext.save()
+                    }) {
                         HStack(spacing: 5) {
                             Image(systemName: inWatchlist ? "bookmark.fill" : "plus.square.on.square")
                                 .font(.system(size: 11, weight: .semibold))
                                 .foregroundColor(Color.theme.primaryCyan)
-                            Text("Watchlist")
+                            Text(inWatchlist ? "Salvato" : "Watchlist")
                                 .font(.system(size: 11, weight: .semibold))
-                                .foregroundColor(Color.theme.textSecondary)
+                                .foregroundColor(inWatchlist ? Color.theme.primaryCyan : Color.theme.textSecondary)
                         }
                         .padding(.horizontal, 10)
                         .padding(.vertical, 6)
@@ -420,7 +429,7 @@ struct SearchResultRowCard: View {
                         .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
                         .overlay(
                             RoundedRectangle(cornerRadius: 7, style: .continuous)
-                                .stroke(Color.theme.borderHairline, lineWidth: 0.5)
+                                .stroke(inWatchlist ? Color.theme.primaryCyan : Color.theme.borderHairline, lineWidth: 0.5)
                         )
                     }
                 }
