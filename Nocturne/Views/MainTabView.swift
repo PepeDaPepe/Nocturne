@@ -3,6 +3,7 @@ import SwiftUI
 struct MainTabView: View {
     @State private var selectedTab: Int = 0
     @State private var showQuickLog: Bool = false
+    @State private var tabResetID: UUID = UUID() // Permette di tornare indietro toccando di nuovo l'icona del Tab
     
     init() {
         UITabBar.appearance().isHidden = true
@@ -11,42 +12,50 @@ struct MainTabView: View {
     var body: some View {
         ZStack(alignment: .bottom) {
             
-            // 1. CONTENUTO DELLE PAGINE
+            // CONTENUTO DELLE PAGINE
             Group {
                 switch selectedTab {
                 case 0:
                     HomeView()
+                        .id(tabResetID)
                 case 1:
                     SearchView()
+                        .id(tabResetID)
                 case 3:
                     WatchlistView()
+                        .id(tabResetID)
                 case 4:
                     ProfileView()
+                        .id(tabResetID)
                 default:
                     HomeView()
+                        .id(tabResetID)
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             
-            // 2. CUSTOM TAB BAR
+            // CUSTOM TAB BAR
             NocturneTabBar(
                 selectedTab: $selectedTab,
+                onReselectTab: {
+                    // Se clicchi sul tab già aperto (es. Home mentre sei nei dettagli), torna alla radice
+                    tabResetID = UUID()
+                },
                 onLogTap: {
                     showQuickLog = true
                 }
             )
         }
         .ignoresSafeArea(.keyboard, edges: .bottom)
-        // Apre LogMovieSheet SENZA film preimpostato, così parte dalla ricerca TMDB!
         .sheet(isPresented: $showQuickLog) {
             LogMovieSheet(movie: nil)
         }
     }
 }
 
-// Componente Barra di Navigazione Custom
 struct NocturneTabBar: View {
     @Binding var selectedTab: Int
+    var onReselectTab: () -> Void
     var onLogTap: () -> Void
     
     var body: some View {
@@ -58,10 +67,7 @@ struct NocturneTabBar: View {
             HStack(spacing: 0) {
                 tabButton(index: 0, icon: "movieclapper", activeIcon: "movieclapper.fill", title: "Home")
                 tabButton(index: 1, icon: "magnifyingglass", activeIcon: "magnifyingglass", title: "Cerca")
-                
-                // Pulsante Centrale "+ Log"
                 logCenterButton()
-                
                 tabButton(index: 3, icon: "bookmark", activeIcon: "bookmark.fill", title: "Watchlist")
                 tabButton(index: 4, icon: "person.crop.circle", activeIcon: "person.crop.circle.fill", title: "Profilo")
             }
@@ -84,7 +90,11 @@ struct NocturneTabBar: View {
         
         Button(action: {
             withAnimation(.spring(response: 0.25, dampingFraction: 0.75)) {
-                selectedTab = index
+                if selectedTab == index {
+                    onReselectTab()
+                } else {
+                    selectedTab = index
+                }
             }
         }) {
             VStack(spacing: 4) {
@@ -132,9 +142,4 @@ struct NocturneTabBar: View {
             .frame(maxWidth: .infinity)
         }
     }
-}
-
-#Preview {
-    MainTabView()
-        .preferredColorScheme(.dark)
 }

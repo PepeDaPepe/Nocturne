@@ -1,31 +1,18 @@
 import SwiftUI
 import SwiftData
 
-struct FeaturedGenreCardItem: Identifiable {
-    let id = UUID()
-    let name: String
-    let countText: String
-}
-
 struct SearchView: View {
     @StateObject private var viewModel = MovieCatalogViewModel()
-    @State private var searchText: String = "Blade Runner"
+    @State private var searchText: String = ""
     @State private var selectedCategory: String = "Tutti"
     
-    let categories = ["Tutti", "Film", "Registi", "Attori", "Cineforum"]
+    let categories = ["Tutti", "Film", "Registi", "Attori"]
     
     @State private var recentSearches = [
         "Denis Villeneuve",
         "Christopher Nolan",
-        "Cyberpunk 2077",
-        "A24"
-    ]
-    
-    let featuredGenres: [FeaturedGenreCardItem] = [
-        FeaturedGenreCardItem(name: "Cyberpunk", countText: "142 film"),
-        FeaturedGenreCardItem(name: "Neo-Noir", countText: "98 film"),
-        FeaturedGenreCardItem(name: "Psicologico", countText: "215 film"),
-        FeaturedGenreCardItem(name: "D'Autore", countText: "380 film")
+        "Blade Runner",
+        "Interstellar"
     ]
     
     private let genreColumns = [
@@ -41,7 +28,7 @@ struct SearchView: View {
                 ScrollView(.vertical, showsIndicators: false) {
                     VStack(alignment: .leading, spacing: LayoutInfo.spaceXL) {
                         
-                        // 1. HEADER SUPERIORE ("Cerca")
+                        // HEADER SUPERIORE
                         HStack {
                             HStack(spacing: 8) {
                                 Image(systemName: "movieclapper")
@@ -52,34 +39,18 @@ struct SearchView: View {
                                     .font(.system(size: 20, weight: .bold, design: .serif))
                                     .foregroundColor(Color.theme.textPrimary)
                             }
-                            
                             Spacer()
-                            
-                            HStack(spacing: 14) {
-                                Image(systemName: "magnifyingglass")
-                                    .font(.system(size: 16, weight: .medium))
-                                    .foregroundColor(Color.theme.textSecondary)
-                                
-                                Circle()
-                                    .fill(Color.theme.surfaceElevated)
-                                    .frame(width: 32, height: 32)
-                                    .overlay(
-                                        Image(systemName: "person.circle")
-                                            .font(.system(size: 16))
-                                            .foregroundColor(Color.theme.primaryCyan)
-                                    )
-                            }
                         }
                         .padding(.horizontal, LayoutInfo.gutterMobile)
                         
-                        // 2. BARRA DI RICERCA LIVE + FILTRI
+                        // BARRA DI RICERCA LIVE + CATEGORIE INTERATTIVE
                         VStack(alignment: .leading, spacing: LayoutInfo.spaceMD) {
                             HStack(spacing: 10) {
                                 Image(systemName: "magnifyingglass")
                                     .font(.system(size: 15, weight: .semibold))
                                     .foregroundColor(Color.theme.primaryCyan)
                                 
-                                TextField("Cerca film su TMDB...", text: $searchText)
+                                TextField("Cerca \(selectedCategory.lowercased()) su TMDB...", text: $searchText)
                                     .font(.system(size: 15))
                                     .foregroundColor(Color.theme.textPrimary)
                                     .submitLabel(.search)
@@ -94,22 +65,9 @@ struct SearchView: View {
                                             .clipShape(Circle())
                                     }
                                 }
-                                
-                                Button(action: {}) {
-                                    Image(systemName: "slider.horizontal.3")
-                                        .font(.system(size: 14, weight: .semibold))
-                                        .foregroundColor(Color.theme.primaryCyan)
-                                        .frame(width: 32, height: 32)
-                                        .background(Color.theme.primaryCyan.opacity(0.12))
-                                        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-                                        .overlay(
-                                            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                                .stroke(Color.theme.borderActive, lineWidth: 0.5)
-                                        )
-                                }
                             }
                             .padding(.leading, 14)
-                            .padding(.trailing, 8)
+                            .padding(.trailing, 12)
                             .frame(height: 48)
                             .background(Color.theme.surface)
                             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
@@ -119,7 +77,7 @@ struct SearchView: View {
                             )
                             .padding(.horizontal, LayoutInfo.gutterMobile)
                             
-                            // Pillole Categoria
+                            // Pillole Categoria (Tutti, Film, Registi, Attori)
                             ScrollView(.horizontal, showsIndicators: false) {
                                 HStack(spacing: 8) {
                                     ForEach(categories, id: \.self) { category in
@@ -148,42 +106,26 @@ struct SearchView: View {
                             }
                         }
                         
-                        // 3. RICERCHE RECENTI (Cliccabili per cercare subito)
+                        // RICERCHE RAPIDE
                         if !recentSearches.isEmpty {
                             VStack(alignment: .leading, spacing: LayoutInfo.spaceSM) {
                                 HStack {
-                                    HStack(spacing: 6) {
-                                        Image(systemName: "clock.arrow.circlepath")
-                                            .font(.system(size: 11))
-                                            .foregroundColor(Color.theme.textSecondary)
-                                        Text("RICERCHE RECENTI")
-                                            .font(.system(size: 11, weight: .bold))
-                                            .tracking(0.8)
-                                            .foregroundColor(Color.theme.textSecondary)
-                                    }
-                                    
+                                    Text("RICERCHE CONSIGLIATE")
+                                        .font(.system(size: 11, weight: .bold))
+                                        .tracking(0.8)
+                                        .foregroundColor(Color.theme.textSecondary)
                                     Spacer()
-                                    
-                                    Button("Cancella tutto") {
-                                        withAnimation {
-                                            recentSearches.removeAll()
-                                        }
+                                    Button("Cancella") {
+                                        withAnimation { recentSearches.removeAll() }
                                     }
                                     .font(.system(size: 12, weight: .medium))
                                     .foregroundColor(Color.theme.primaryCyan)
                                 }
                                 
-                                VStack(alignment: .leading, spacing: 8) {
+                                ScrollView(.horizontal, showsIndicators: false) {
                                     HStack(spacing: 8) {
-                                        ForEach(recentSearches.prefix(2), id: \.self) { term in
+                                        ForEach(recentSearches, id: \.self) { term in
                                             recentChip(term: term)
-                                        }
-                                    }
-                                    if recentSearches.count > 2 {
-                                        HStack(spacing: 8) {
-                                            ForEach(recentSearches.dropFirst(2), id: \.self) { term in
-                                                recentChip(term: term)
-                                            }
                                         }
                                     }
                                 }
@@ -191,35 +133,22 @@ struct SearchView: View {
                             .padding(.horizontal, LayoutInfo.gutterMobile)
                         }
                         
-                        // 4. RISULTATI DI RICERCA DA TMDB
+                        // RISULTATI DI RICERCA DA TMDB
                         VStack(alignment: .leading, spacing: LayoutInfo.spaceMD) {
-                            HStack(alignment: .bottom) {
-                                HStack(alignment: .firstTextBaseline, spacing: 8) {
-                                    Text("Risultati")
-                                        .font(.system(size: 19, weight: .bold, design: .serif))
-                                        .foregroundColor(Color.theme.textPrimary)
-                                    
-                                    Text("\(viewModel.searchResults.count) titoli trovati")
-                                        .font(.system(size: 12))
-                                        .monospacedDigit()
-                                        .foregroundColor(Color.theme.textSecondary)
-                                }
+                            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                                Text(searchText.isEmpty ? "Popolari su TMDB" : "Risultati (\(selectedCategory))")
+                                    .font(.system(size: 19, weight: .bold, design: .serif))
+                                    .foregroundColor(Color.theme.textPrimary)
                                 
+                                Text("\(viewModel.searchResults.count) titoli")
+                                    .font(.system(size: 12))
+                                    .monospacedDigit()
+                                    .foregroundColor(Color.theme.textSecondary)
                                 Spacer()
-                                
-                                Button(action: {}) {
-                                    HStack(spacing: 4) {
-                                        Text("Rilevanza")
-                                        Image(systemName: "chevron.down")
-                                            .font(.system(size: 10, weight: .bold))
-                                    }
-                                    .font(.system(size: 12, weight: .semibold))
-                                    .foregroundColor(Color.theme.primaryCyan)
-                                }
                             }
                             
                             VStack(spacing: LayoutInfo.spaceMD) {
-                                ForEach(viewModel.searchResults) { movie in
+                                ForEach(viewModel.searchResults.prefix(8)) { movie in
                                     NavigationLink(destination: MovieDetailView(movie: movie)) {
                                         SearchResultRowCard(movie: movie)
                                     }
@@ -229,7 +158,7 @@ struct SearchView: View {
                         }
                         .padding(.horizontal, LayoutInfo.gutterMobile)
                         
-                        // 5. GENERI IN EVIDENZA
+                        // TUTTI I GENERI UFFICIALI TMDB CLICCABILI
                         VStack(alignment: .leading, spacing: LayoutInfo.spaceMD) {
                             HStack(alignment: .bottom) {
                                 HStack(spacing: 6) {
@@ -237,28 +166,20 @@ struct SearchView: View {
                                         .font(.system(size: 14, weight: .semibold))
                                         .foregroundColor(Color.theme.primaryCyan)
                                     
-                                    Text("Generi in Evidenza")
+                                    Text("Tutti i Generi TMDB")
                                         .font(.system(size: 18, weight: .bold, design: .serif))
                                         .foregroundColor(Color.theme.textPrimary)
                                 }
-                                
                                 Spacer()
-                                
-                                Text("Esplora cataloghi")
+                                Text("\(viewModel.genres.count) cataloghi")
                                     .font(.system(size: 12))
                                     .foregroundColor(Color.theme.textSecondary)
                             }
                             
                             LazyVGrid(columns: genreColumns, spacing: LayoutInfo.spaceMD) {
-                                ForEach(featuredGenres) { genre in
+                                ForEach(viewModel.genres) { genre in
                                     NavigationLink(
-                                        destination: ExpandedMovieListView(
-                                            title: genre.name,
-                                            subtitle: "Catalogo Genere",
-                                            badgeTitle: genre.countText,
-                                            movies: viewModel.searchResults,
-                                            showRank: false
-                                        )
+                                        destination: GenreCatalogDestinationView(genre: genre)
                                     ) {
                                         ZStack(alignment: .bottomLeading) {
                                             LinearGradient(
@@ -275,14 +196,13 @@ struct SearchView: View {
                                                     .font(.system(size: 17, weight: .bold, design: .serif))
                                                     .foregroundColor(Color.theme.textPrimary)
                                                 
-                                                Text(genre.countText)
-                                                    .font(.system(size: 12, weight: .semibold))
-                                                    .monospacedDigit()
+                                                Text("Esplora su TMDB →")
+                                                    .font(.system(size: 11, weight: .semibold))
                                                     .foregroundColor(Color.theme.primaryCyan)
                                             }
                                             .padding(14)
                                         }
-                                        .frame(height: 92)
+                                        .frame(height: 86)
                                         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                                         .overlay(
                                             RoundedRectangle(cornerRadius: 12, style: .continuous)
@@ -299,10 +219,10 @@ struct SearchView: View {
                     .padding(.bottom, 100)
                 }
             }
-            // Esegue automaticamente la ricerca su TMDB ogni volta che cambia il testo
-            .task(id: searchText) {
-                try? await Task.sleep(nanoseconds: 300_000_000) // Attende 0.3s mentre digiti
-                await viewModel.performSearch(query: searchText)
+            // Ricerca automatica quando cambi testo O quando tocchi Film / Registi / Attori
+            .task(id: "\(searchText)-\(selectedCategory)") {
+                try? await Task.sleep(nanoseconds: 250_000_000)
+                await viewModel.performSearch(query: searchText, category: selectedCategory)
             }
         }
     }
@@ -311,6 +231,9 @@ struct SearchView: View {
     private func recentChip(term: String) -> some View {
         HStack(spacing: 8) {
             Button(action: {
+                if term == "Denis Villeneuve" || term == "Christopher Nolan" {
+                    selectedCategory = "Registi"
+                }
                 searchText = term
             }) {
                 Text(term)
@@ -319,9 +242,7 @@ struct SearchView: View {
             }
             
             Button(action: {
-                withAnimation {
-                    recentSearches.removeAll { $0 == term }
-                }
+                withAnimation { recentSearches.removeAll { $0 == term } }
             }) {
                 Image(systemName: "xmark")
                     .font(.system(size: 9, weight: .bold))
@@ -336,6 +257,25 @@ struct SearchView: View {
             Capsule()
                 .stroke(Color.theme.borderHairline, lineWidth: 0.5)
         )
+    }
+}
+
+// Vista che scarica i film reali del genere cliccato in SearchView
+struct GenreCatalogDestinationView: View {
+    let genre: TMDBGenre
+    @State private var movies: [Movie] = []
+    
+    var body: some View {
+        ExpandedMovieListView(
+            title: genre.name,
+            subtitle: "CATALOGO UFFICIALE TMDB",
+            badgeTitle: genre.name,
+            movies: movies,
+            showRank: false
+        )
+        .task {
+            movies = (try? await TMDBService.shared.fetchMoviesByGenre(genreId: genre.id)) ?? []
+        }
     }
 }
 
@@ -354,20 +294,9 @@ struct SearchResultRowCard: View {
     
     var body: some View {
         HStack(spacing: LayoutInfo.spaceMD) {
-            ZStack(alignment: .topTrailing) {
-                MovieImageView(source: movie.posterName)
-                    .posterStyle()
-                    .frame(width: 78, height: 117)
-                
-                Text("TMDB")
-                    .font(.system(size: 8, weight: .bold))
-                    .foregroundColor(Color.theme.primaryCyan)
-                    .padding(.horizontal, 5)
-                    .padding(.vertical, 2)
-                    .background(Color.theme.background.opacity(0.9))
-                    .clipShape(RoundedRectangle(cornerRadius: 4))
-                    .padding(5)
-            }
+            MovieImageView(source: movie.posterName)
+                .posterStyle()
+                .frame(width: 78, height: 117)
             
             VStack(alignment: .leading, spacing: 6) {
                 Text(movie.title)
@@ -375,10 +304,11 @@ struct SearchResultRowCard: View {
                     .foregroundColor(Color.theme.textPrimary)
                     .lineLimit(1)
                 
-                Text(movie.year)
+                Text("\(movie.year) • \(movie.director)")
                     .font(.system(size: 13))
                     .monospacedDigit()
                     .foregroundColor(Color.theme.textSecondary)
+                    .lineLimit(1)
                 
                 HStack(spacing: 6) {
                     Image(systemName: "star.fill")
@@ -395,7 +325,7 @@ struct SearchResultRowCard: View {
                 Spacer(minLength: 4)
                 
                 HStack {
-                    Text("FILM")
+                    Text("TMDB")
                         .font(.system(size: 9, weight: .bold))
                         .tracking(0.6)
                         .foregroundColor(Color.theme.primaryCyan)
@@ -443,9 +373,4 @@ struct SearchResultRowCard: View {
                 .stroke(Color.theme.borderHairline, lineWidth: 0.5)
         )
     }
-}
-
-#Preview {
-    SearchView()
-        .preferredColorScheme(.dark)
 }

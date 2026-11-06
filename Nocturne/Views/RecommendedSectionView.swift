@@ -2,61 +2,120 @@ import SwiftUI
 import SwiftData
 
 struct RecommendedSectionView: View {
-    let movies: [Movie]
+    @Query(sort: \SavedMovieEntry.addedDate, order: .reverse) private var savedEntries: [SavedMovieEntry]
+    
+    @State private var recommendedMovies: [Movie] = []
+    @State private var isLoading: Bool = false
+    
+    // Sceglie il film "seme" su cui basare i consigli (priorità ai film votati >= 3.5, altrimenti l'ultimo in Watchlist)
+    private var seedEntry: SavedMovieEntry? {
+        if let bestWatched = savedEntries.filter({ $0.isWatched && $0.userRating >= 3.5 }).sorted(by: { $0.userRating > $1.userRating }).first {
+            return bestWatched
+        }
+        return savedEntries.first
+    }
     
     private let tags = [
-        "Sci-Fi d'Autore",
-        "Cult Consigliato",
-        "Visione Imperdibile",
-        "Fotografia & Regia",
-        "Selezione Cinefili"
+        "Affine ai tuoi gusti",
+        "Consigliato da TMDB",
+        "Stile & Atmosfera",
+        "Scelta Cinefila",
+        "Regia Correlata"
     ]
     
     var body: some View {
         VStack(alignment: .leading, spacing: LayoutInfo.spaceMD) {
             
-            // Intestazione
+            // Intestazione dinamica
             HStack(alignment: .bottom) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Consigliati per Te")
                         .font(.system(size: 20, weight: .semibold))
                         .foregroundColor(Color.theme.textPrimary)
                     
-                    Text("Basato sui tuoi film registrati")
-                        .font(.system(size: 13))
-                        .foregroundColor(Color.theme.textSecondary)
-                }
-                
-                Spacer()
-                
-                Button(action: {}) {
-                    HStack(spacing: 4) {
-                        Text("Personalizza")
-                        Image(systemName: "slider.horizontal.3")
-                            .font(.system(size: 12, weight: .semibold))
+                    if let seed = seedEntry {
+                        Text("Perché ti interessa \(seed.title) • \(savedEntries.count) film nel tuo archivio")
+                            .font(.system(size: 13))
+                            .foregroundColor(Color.theme.primaryCyan)
+                            .lineLimit(1)
+                    } else {
+                        Text("In attesa dei tuoi primi film salvati o recensiti")
+                            .font(.system(size: 13))
+                            .foregroundColor(Color.theme.textSecondary)
                     }
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundColor(Color.theme.primaryCyan)
                 }
+                Spacer()
             }
             .padding(.horizontal, LayoutInfo.gutterMobile)
             
-            // Carosello orizzontale dinamico
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: LayoutInfo.spaceMD) {
-                    ForEach(Array(movies.enumerated()), id: \.element.id) { index, movie in
-                        NavigationLink(destination: MovieDetailView(movie: movie)) {
-                            RecommendedCard(
-                                movie: movie,
-                                tag: tags[index % tags.count],
-                                matchPercentage: max(85, 98 - (index * 2))
-                            )
+            // Stato 1: L'utente non ha ancora nessun film in Watchlist o Diario
+            if savedEntries.isEmpty {
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack(spacing: 10) {
+                        Image(systemName: "wand.and.stars")
+                            .font(.system(size: 22))
+                            .foregroundColor(Color.theme.primaryCyan)
+                        
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Sblocca i tuoi Consigli Personalizzati")
+                                .font(.system(size: 15, weight: .bold, design: .serif))
+                                .foregroundColor(Color.theme.textPrimary)
+                            
+                            Text("Non hai ancora registrato nessun film. Aggiungi un titolo alla Watchlist o vota un film con + Log: useremo quel film per trovare titoli affini su TMDB.")
+                                .font(.system(size: 13))
+                                .foregroundColor(Color.theme.textSecondary)
+                                .lineSpacing(2)
                         }
-                        .buttonStyle(.plain)
                     }
                 }
+                .padding(LayoutInfo.spaceLG)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color.theme.surface)
+                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .stroke(Color.theme.borderActive, lineWidth: 0.5)
+                )
                 .padding(.horizontal, LayoutInfo.gutterMobile)
+            } else if isLoading {
+                HStack {
+                    Spacer()
+                    ProgressView("Analisi dei tuoi gusti su TMDB...")
+                        .tint(Color.theme.primaryCyan)
+                        .font(.system(size: 13))
+                    Spacer()
+                }
+                .padding(.vertical, 30)
+            } else {
+                // Stato 2: Carosello reale basato sui film dell'utente
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: LayoutInfo.spaceMD) {
+                        ForEach(Array(recommendedMovies.enumerated()), id: \.element.id) { index, movie in
+                            NavigationLink(destination: MovieDetailView(movie: movie)) {
+                                RecommendedCard(
+                                    movie: movie,
+                                    tag: tags[index % tags.count],
+                                    matchPercentage: max(84, 98 - (index * 2))
+                                )
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    .padding(.horizontal, LayoutInfo.gutterMobile)
+                }
             }
+        }
+        .task(id: seedEntry?.title) {
+            guard let seed = seedEntry else {
+                recommendedMovies = []
+                return
+            }
+            isLoading = true
+            let recs = (try? await TMDBService.shared.fetchRecommendations(basedOnTitle: seed.title)) ?? []
+            // Esclude i film che hai già visto/salvato
+            let savedTitles = Set(savedEntries.map { $0.title })
+            recommendedMovies = recs.filter { !savedTitles.contains($0.title) }
+            isLoading = false
         }
     }
 }
@@ -79,8 +138,6 @@ struct RecommendedCard: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: LayoutInfo.spaceSM) {
-            
-            // Locandina da TMDB con badge "% MATCH" e pulsante Watchlist
             ZStack {
                 MovieImageView(source: movie.posterName)
                     .posterStyle()
@@ -130,7 +187,6 @@ struct RecommendedCard: View {
             }
             .frame(width: 156, height: 234)
             
-            // Testi e metriche sotto la locandina
             VStack(alignment: .leading, spacing: 4) {
                 Text(movie.title)
                     .font(.system(size: 15, weight: .semibold))
@@ -152,11 +208,9 @@ struct RecommendedCard: View {
                             .monospacedDigit()
                             .foregroundColor(Color.theme.textSecondary)
                     }
-                    
                     Spacer()
-                    
-                    Text("\(movie.runtime) min")
-                        .font(.system(size: 12, weight: .regular))
+                    Text(movie.year)
+                        .font(.system(size: 12))
                         .monospacedDigit()
                         .foregroundColor(Color.theme.textSecondary)
                 }
